@@ -1,0 +1,66 @@
+= MineScript
+
+== About
+A mod for Minecraft using the Fabric loader/api which allows for client server communication & program execution.
+
+== Modes
+A node can be set up as: `host`, which has a published name & exclusively handles requests, `client` (default), which can both handle requests and send them.
+
+== Functions
+While functions as such don't exist, the 'self' keyword allows for a node to send requests to itself & execute the relevant code.
+
+== Grammar
+*atomic-literal*: +
+  [`'`] [^`'`] [`'`]
+
+*int-literal*: +
+  [`0`-`9`] `int-literal` +
+  | [`0`-`9`]
+  
+*fp-literal*: +
+  `int-literal` [`.`] `int-literal`
+
+*valid-mode*: +
+  [`host`] +
+  | [`client`]
+
+*mode-specification*: +
+  [`mode`] valid-mode
+
+=== Assignment
+a \<= b +
+a \<- b
+
+=== Message Sending
+==== Don't Await Response
+a \-> b
+==== Await Response
+a # b
+
+=== Comparison
+a = b +
+a /= b +
+a > b +
+a < b +
+a >= b +
+a =< b
+
+=== Mathmatical High Precidence
+a + b +
+a - b
+
+=== Mathmatical Low Precidence
+a * b +
+a / b +
+a % b
+
+=== Unary
+~ a +
++ a +
+- a
+
+=== Member Access
+a $ b
+
+=== Brackets
+[ a ]
