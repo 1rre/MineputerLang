@@ -5,16 +5,6 @@ import Tokeniser._
 object MCParser extends Parsers[Token] {
   sealed trait Statement
 
-  case object Host extends Statement {
-    
-  }
-  case object Client extends Statement {
-    
-  }
-  def client: Parser[Statement] = Word("mode") /> Word("client").p >> Client
-  def host: Parser[Statement] = Word("mode") /> Word("host").p >> Host
-  private val mode = client | host
-
   case class Name(name: String) extends Statement {
     
   }
@@ -87,7 +77,7 @@ object MCParser extends Parsers[Token] {
   case class TypedVar(id: String, t: Type) extends Assignable {
     
   }
-  private val varName = identifier ~ (Symbol(":") /> allType).? #> {
+   val varName = identifier ~ (Symbol(":") /> allType).? #> {
     case (id, Some(t)) => TypedVar(id, t)
     case (id, None) => TypedVar(id, AnyType)
   }
@@ -101,7 +91,7 @@ object MCParser extends Parsers[Token] {
     literal #> (_.asInstanceOf[Assignable]) | varName #> (_.asInstanceOf[Assignable])
   private val assignable = assignableRoot | assignableObj
 
-  sealed trait Operation
+  sealed trait Operation extends Value
 
   def always: Value = IntLiteral(1)
   private val predicateCheck = Word("when") /> expr
@@ -113,13 +103,13 @@ object MCParser extends Parsers[Token] {
       }
   private val pOneCase =
     ((Symbol("{") /> operation.* <\ Symbol("}")) #> (ops => Seq((IntLiteral(1), ops))))
-  case class Handler(signature: Assignable, cases: Seq[(Value, Seq[Operation])]) extends Statement {
+  case class Handler(signature: Assignable, cases: Seq[(Value, Seq[Value])]) extends Statement {
     def casesStr = cases.map {
       case (a,b) => s"($a) {${b.mkString(" ", "; ", "; ")}}"
     }.mkString("if ", " else if ", "")
     
   }
-  private val handler: Parser[Statement] = Word("handle") /> assignable ~ (pOneCase | pCases) #> {
+  private val handler: Parser[Statement] = Word("sig") /> assignable ~ (pOneCase | pCases) #> {
     case (a,b) => Handler(a,b)
   }
   private val exprBrackets = Symbol("[") /> expr <\ Symbol("]")
@@ -226,23 +216,19 @@ object MCParser extends Parsers[Token] {
     case (a, b) => b.foldLeft(a)((acc, v) => v(acc))
   }
 
-  case class MsgAwait(x: Value, y: Value) extends Value {
+  case class CallFun(x: Value, y: Value) extends Value with Statement with Operation {
     
   }
-  private val msgAwaitTail: Parser[Value => Value] =
-    Symbol("#") /> expr$5 #> (b => (a: Value) => MsgAwait(a, b))
+  private val callFunTail: Parser[Value => Value] =
+    Symbol("#") /> expr$5 #> (b => (a: Value) => CallFun(a, b))
 
-  private val expr$6Tail = msgAwaitTail
+  private val expr$6Tail = callFunTail
   private val expr$6: Parser[Value] = expr$5 ~ (expr$6Tail.*) #> {
     case (a, b) => b.foldLeft(a)((acc, v) => v(acc))
   }
 
   def expr = expr$6
 
-  case class MsgNoAwait(x: Value, y: Value) extends Operation with Statement
-  private val msgNoAwait: Parser[Operation with Statement] = expr ~ Symbol("->") ~ expr #> {
-    case ((a, _), b) => MsgNoAwait(b, a)
-  }
   case class Declaration(variable: Assignable, value: Value) extends Operation{
 
   }
@@ -254,7 +240,7 @@ object MCParser extends Parsers[Token] {
   private val assignment: Parser[Operation] = assignable ~ (Symbol("<-") /> expr) #> {
     case (a, b) => Assignment(a, b)
   }
-  private val operation = assignment | declaration | msgNoAwait.asInstanceOf[Parser[Operation]]
+  private val operation = assignment | declaration | expr
   case class Record(name: String, t: Type, initial: Value) extends Statement {
     
   }
@@ -263,5 +249,5 @@ object MCParser extends Parsers[Token] {
       case Declaration(TypedVar(id, t), init) => Record(id, t, init).asInstanceOf[Statement]
     }
 
-  def statement = mode | name | record | handler | msgNoAwait.asInstanceOf[Parser[Statement]]
+  def statement = name | record | handler
 }

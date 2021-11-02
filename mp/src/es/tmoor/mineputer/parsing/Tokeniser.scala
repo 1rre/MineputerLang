@@ -29,7 +29,7 @@ object Tokeniser extends TextParser {
   private val atom =
     '\'' /> (new PFParser(_ != '\'').+ #> (Token.atom(_))) <\ '\''
   case class Symbol(name: String) extends Token
-  private val senders = Seq(str("->"), str("#")).choice #> (Token.sym(_))
+  private val senders = str("#") #> (Token.sym(_))
   private val comparators =
     Seq(">=", "=<", "<=", "/=", "=", ">", "<").map(str).choice #> (Token.sym(_))
   private val assignment = str("<-") >> Token.sym("<-")

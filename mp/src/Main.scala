@@ -1,74 +1,19 @@
 import es.tmoor.mineputer.parsing.Tokeniser
 import es.tmoor.mineputer.parsing.MCParser
-import es.tmoor.mineputer.parsing.MCParser.Host
-import es.tmoor.mineputer.parsing.MCParser.Client
 import es.tmoor.mineputer.parsing.MCParser.Name
 import es.tmoor.mineputer.parsing.MCParser.Handler
-import es.tmoor.mineputer.parsing.MCParser.MsgNoAwait
-import es.tmoor.mineputer.environment._
-import es.tmoor.mineputer.environment.Environment._
+import es.tmoor.mineputer.parsing.MCParser.CallFun
+import es.tmoor.mineputer.Compiler
 
 object Main extends App {
-
-  /*
-  val in = "'server'#('modify x', ('increment', b+2), ('return', 'true')) -> sender#'get atomic name'"
-  import es.tmoor.mineputer.parsing.{Tokeniser, MCParser}
-  val result = es.tmoor.mineputer.parsing.Tokeniser.tokenSeq.parseAll(in)
-  println(result)
-  result match {
-    case Tokeniser.NoMatch(idx) => 
-    case Tokeniser.Match(idx, r) =>
-      println(MCParser.statement.*.parseAll(r))
-  }
-  */
-
-
+  val input = io.Source.fromFile("example/addOne.mp").mkString
+  val tokenParseRes = Tokeniser.tokenSeq.parseAll(input)
+  println(tokenParseRes.get)
   
-  def testAsTokeniser(input: String) = {
-    import es.tmoor.mineputer.parsing.Tokeniser._
-    val result = tokenSeq.parseAll(input)
-    result match {
-      case NoMatch(idx) =>
-        println(input.take(idx))
-        Nil
-      case Match(idx, result) =>
-        testAsMCParser(result)
-    }
-  }
-  def testAsMCParser(input: Seq[Tokeniser.Token]) = {
-    import es.tmoor.mineputer.parsing.MCParser._
-    val result = statement.+.parseAll(input)
-    result match {
-      case NoMatch(idx) =>
-        println(input.take(idx))
-        Nil
-      case Match(idx, result) =>
-        result
-    }
-  }
-  def testServer() = {
-    val input = io.Source.fromFile("example/host/server2.mp").mkString
-    testAsTokeniser(input)
-  }
-  def testClient() = {
-    val input = io.Source.fromFile("example/client/client2.mp").mkString
-    testAsTokeniser(input)
-  }
-
-  val clientCode = testClient()
-  val serverCode = testServer()
-  val server = serverCode collectFirst {
-    case Name(name) => new Host(serverCode, name)
-  } getOrElse new Host(serverCode)
-  val client = clientCode collectFirst {
-    case Name(name) => new Host(clientCode, name)
-  } getOrElse new Host(clientCode)
-  val testMsgBox = new RTMessageBox()
-  server.register()
-  client.register()
-  Thread.sleep(10)
-  println(client.globals)
-  println(server.globals)
+  val parseRes = MCParser.statement.+.parseAll(tokenParseRes.get)
+  println(parseRes)
+  val compiler = new Compiler(parseRes.get)
+  
 }
 
 /*
